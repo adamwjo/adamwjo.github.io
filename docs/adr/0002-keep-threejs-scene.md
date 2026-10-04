@@ -1,6 +1,6 @@
 # ADR-0002 — Keep the three.js Scene, but lazy-load it
 
-**Status:** Accepted, flagged for review · 2026-08-24
+**Status:** Superseded by [ADR-0003](0003-remove-threejs-scene.md) · 2026-10-04
 
 ## Context
 

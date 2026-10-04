@@ -1,437 +1,487 @@
-import { lazy, Suspense, useRef, type ReactNode } from "react";
-import { motion, MotionConfig, useScroll, useTransform } from "motion/react";
-// three.js is ~1 MB of JS; load it after the page content has painted.
-const Scene = lazy(() => import("./three/Scene"));
+import { useRef } from "react";
 import {
-  IconUseful,
-  IconHonest,
-  IconUnobtrusive,
-  IconThorough,
-  IconLongLasting,
-  IconAsLittle,
-  ArtLedger,
-  ArtAtlas,
-  ArtSignal,
-  IconMail,
-  IconLink,
-  IconPin,
+  AnimatePresence,
+  motion,
+  MotionConfig,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "motion/react";
+import { Clock } from "./components/Clock";
+import { Experience, type Role } from "./components/Experience";
+import {
+  ArrowDown,
+  ArrowUpRight,
   BrandMark,
+  Icon,
 } from "./components/icons";
+import { CopyKey, Key } from "./components/Key";
+import { Rule } from "./components/Rule";
+import { useActiveSection } from "./components/useActiveSection";
+import { useNewYorkTime } from "./components/useNewYorkTime";
+import { useVisible } from "./components/useVisible";
 
-const principleIcons = [
-  IconUseful,
-  IconHonest,
-  IconUnobtrusive,
-  IconThorough,
-  IconLongLasting,
-  IconAsLittle,
-];
+/* ------------------------------------------------------------------ */
+/* Content. Edit here; the layout below only arranges it.              */
+/* ------------------------------------------------------------------ */
 
-const workArt = [ArtLedger, ArtAtlas, ArtSignal];
+const EMAIL = "adamwjo@gmail.com";
 
-type StatusKind = "success" | "warning" | "info";
-
-const statusColor: Record<StatusKind, string> = {
-  success: "var(--success)",
-  warning: "var(--warning)",
-  info: "var(--info)",
+const LINKEDIN = {
+  href: "https://www.linkedin.com/in/adam-johnson-715175163",
+  handle: "in/adam-johnson-715175163",
 };
 
-function StatusBadge({ kind, label }: { kind: StatusKind; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-      <span
-        className="h-2 w-2 rounded-full"
-        style={{ backgroundColor: statusColor[kind] }}
-      />
-      {label}
-    </span>
-  );
-}
-
-function Reveal({
-  children,
-  delay = 0,
-  className = "",
-}: {
-  children: ReactNode;
-  delay?: number;
-  className?: string;
-}) {
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-function Label({ children }: { children: ReactNode }) {
-  return (
-    <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-      {children}
-    </span>
-  );
-}
-
-const work = [
+const roles: Role[] = [
   {
-    idx: "01",
-    year: "2022 — Present",
+    id: "role-product-owner",
     title: "Product Owner",
-    role: "Broadway.com · New York",
-    desc: "Own and communicate priorities for customer-facing digital experiences, including ticketing-related initiatives — translating business objectives and user needs into a sequenced roadmap and clear delivery outcomes across the full PDLC.",
-    tags: ["Roadmap", "Ticketing systems", "Next.js", "Agile"],
-    status: { kind: "success" as const, label: "Current" },
+    org: "Broadway.com · New York",
+    years: "2022 – Now",
+    start: 2022,
+    end: null,
+    band: "Product Owner",
+    lane: 0,
+    desc: "I own the priorities for Broadway.com’s customer-facing product, including the ticketing work. Day to day, that means turning business goals and what customers actually need into a roadmap in a sensible order, then staying with it through discovery, delivery, and the numbers after launch.",
   },
   {
-    idx: "02",
-    year: "2020 — 2022",
+    id: "role-flatiron",
     title: "Senior / Lead Instructor",
-    role: "Flatiron School · East Sync",
-    desc: "Led technical instruction and cohort delivery, turning complex software concepts into clear, actionable guidance. Coached students and instructors through ambiguity and changing priorities in an inclusive, accountable environment.",
-    tags: ["Teaching", "Mentorship", "Curriculum"],
-    status: { kind: "info" as const, label: "Education" },
+    org: "Flatiron School · East Sync",
+    years: "2020 – 2022",
+    start: 2020,
+    end: 2022,
+    band: "Flatiron",
+    lane: 0,
+    desc: "I taught software engineering and led cohorts from start to finish. Most of the job was making hard ideas feel approachable, coaching students and fellow instructors when things got ambiguous, and keeping everyone accountable while the plan kept changing.",
   },
   {
-    idx: "03",
-    year: "2019 — 2020",
+    id: "role-qa",
     title: "QA Engineer",
-    role: "Broadway.com · New York",
-    desc: "Planned and executed functional and regression testing for customer-facing web experiences. Partnered with product and engineering to reproduce issues, clarify expected behavior, and strengthen release readiness.",
-    tags: ["QA", "Regression", "Release readiness"],
-    status: { kind: "info" as const, label: "Quality" },
+    org: "Broadway.com · New York",
+    years: "2019 – 2020",
+    start: 2019,
+    end: 2020,
+    band: "QA",
+    lane: 0,
+    desc: "This is where I learned how software breaks. I planned and ran functional and regression testing on the customer-facing site, reproduced bugs, worked with product and engineering to pin down how things should behave, and pushed for releases that went out without drama.",
   },
   {
-    idx: "04",
-    year: "2019 — 2022",
+    id: "role-we-build-black",
     title: "Instructor · Curriculum Designer",
-    role: "We Build Black",
-    desc: "Contributed to instruction and designed lesson plans for introductory web development, helping make technical learning accessible to a broader community.",
-    tags: ["Curriculum", "Web dev", "Community"],
-    status: { kind: "info" as const, label: "Community" },
+    org: "We Build Black",
+    years: "2019 – 2022",
+    start: 2019,
+    end: 2022,
+    band: "We Build Black",
+    lane: 1,
+    desc: "I taught introductory web development and wrote the lesson plans myself. The point was to give more people in the community a real, practical way into tech.",
   },
 ];
 
-const principles = [
-  ["End-to-end ownership", "Clear problem framing, research-informed prioritization, and disciplined scope from discovery through post-launch analysis."],
-  ["Technical partnership", "JavaScript and Next.js fluency to evaluate dependencies, weigh tradeoffs, and keep product and platform goals aligned."],
-  ["Customer-centered clarity", "Simplify complex user journeys and communicate product decisions with empathy, transparency, and precision."],
-  ["Release quality", "A QA-grounded eye for edge cases, system behavior, and risk that holds a high bar for usability and quality."],
-  ["Stakeholder alignment", "Surface dependencies and align scope with timelines across engineering, design, analytics, ops, and commercial teams."],
-  ["Learn the domain fast", "Master complex landscapes quickly, break large problems into manageable decisions, and work closely with domain experts."],
+const principles: [string, string][] = [
+  [
+    "I own it end to end",
+    "From framing the problem and prioritizing with real research, through holding the scope and launching, to reading the numbers afterwards. Shipping isn’t the finish line; finding out whether it worked is.",
+  ],
+  [
+    "I speak engineering",
+    "I know JavaScript and Next.js well enough to weigh a dependency, ask good questions about an estimate, and keep product goals and platform goals pointed in the same direction.",
+  ],
+  [
+    "I keep it simple for customers",
+    "If a journey is complicated, I keep cutting until a first-time customer can get through it without help. And I write decisions down with the reasoning attached, so nobody has to guess later.",
+  ],
+  [
+    "I test before it ships",
+    "I started in QA, and the habit never left. I still go looking for the edge case, the odd state, and the risky dependency before a customer runs into it.",
+  ],
+  [
+    "I raise problems early",
+    "Dependencies, scope changes, and timeline risks get raised as soon as I see them, with engineering, design, analytics, operations, and the commercial team in the same conversation.",
+  ],
+  [
+    "I learn new domains quickly",
+    "When I land in an unfamiliar problem space, I find the people who know it best, break the big problem into smaller decisions, and start making them together.",
+  ],
 ];
 
-const contact = [
-  {
-    icon: IconLink,
-    label: "LinkedIn",
-    value: "in/adam-johnson-715175163",
-    href: "https://www.linkedin.com/in/adam-johnson-715175163",
-  },
-  { icon: IconMail, label: "Availability", value: "Open to Product roles" },
-  { icon: IconPin, label: "Location", value: "New York, NY" },
+// The four disciplines here and in the hero paragraph must stay in sync.
+const spec: [string, string][] = [
+  ["Experience", "7+ years across product and technology"],
+  ["Disciplines", "Product delivery, QA engineering, web development, software education"],
+  ["Broadway.com", "QA engineer from 2019, product owner since 2022"],
+  ["Scope", "Discovery to post-launch, the whole PDLC"],
+  ["Code", "JavaScript, Next.js"],
+  ["Based in", "New York, NY"],
 ];
 
-const metrics = [
-  ["7+", "years across product & tech"],
-  ["4", "disciplines spanned"],
-  ["2022", "owning product at Broadway.com"],
-  ["PDLC", "owned end to end"],
-];
+const nav = [
+  { label: "Experience", id: "work" },
+  { label: "How I work", id: "principles" },
+  { label: "About", id: "about" },
+] as const;
 
-export default function App() {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+/* ------------------------------------------------------------------ */
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+const wrap = "wrap";
+const navIds = nav.map(({ id }) => id);
+
+// Phones: the header scrolls away with the page; navigation and the email
+// key live in the bottom deck instead. Tablet and up: a fixed header strip.
+function Header() {
+  const active = useActiveSection(navIds);
 
   return (
-    <MotionConfig reducedMotion="user">
-    <div className="relative min-h-screen w-full bg-background text-foreground font-sans">
-      {/* Fixed 3D backdrop */}
-      <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute inset-0 md:left-1/2">
-          <Suspense fallback={null}>
-            <Scene />
-          </Suspense>
-        </div>
+    <header className="absolute inset-x-0 top-0 z-40 bg-ground pt-[env(safe-area-inset-top)] not-phone:fixed">
+      <div className={`${wrap} flex h-(--header-h) items-center justify-between gap-6`}>
+        <a href="#top" className="flex items-center gap-3">
+          <BrandMark className="h-7 w-7 text-ink" />
+          <span className="font-medium">Adam Johnson</span>
+        </a>
+        <nav aria-label="Sections" className="hidden items-center gap-8 not-phone:flex">
+          <ul className="flex items-center gap-7">
+            {nav.map(({ label, id }) => (
+              <li key={id}>
+                <a
+                  href={`#${id}`}
+                  aria-current={active === id ? "location" : undefined}
+                  className={`relative block py-2 transition-colors duration-200 hover:text-ink ${
+                    active === id ? "text-ink" : "text-ink-2"
+                  }`}
+                >
+                  {label}
+                  {active === id && (
+                    <motion.span
+                      layoutId="nav-indicator"
+                      className="absolute inset-x-0 bottom-0 h-px bg-ink"
+                      transition={{ type: "spring", stiffness: 380, damping: 34 }}
+                    />
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <Key href="#contact" size="sm">
+            Contact
+          </Key>
+        </nav>
       </div>
+      <div className={wrap}>
+        <div className="h-px bg-rule" />
+      </div>
+    </header>
+  );
+}
 
-      {/* Header */}
-      <header className="fixed inset-x-0 top-0 z-30 bg-background/85 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <div className="flex items-center gap-3">
-            <BrandMark className="h-6 w-6 text-foreground" />
-            <span className="font-display text-sm font-bold tracking-tight">
-              ADAM JOHNSON
-            </span>
-          </div>
-          <nav className="hidden gap-8 md:flex">
-            {[
-              ["Experience", "work"],
-              ["Approach", "principles"],
-              ["About", "about"],
-              ["Contact", "contact"],
-            ].map(([label, id]) => (
+// The phone's control strip: a black bar along the bottom edge with the
+// sections under the thumb and Email at the end. It rises once the hero's own
+// Email key has scrolled away and steps aside when the Contact keys arrive.
+function Deck() {
+  const active = useActiveSection(navIds);
+  const heroKeysInView = useVisible("hero-actions");
+  const contactKeysInView = useVisible("contact-actions", false);
+  const show = !heroKeysInView && !contactKeysInView;
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.nav
+          key="deck"
+          aria-label="Sections"
+          className="on-panel fixed inset-x-0 bottom-0 z-50 hidden bg-panel pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] text-panel-ink phone:block"
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "100%" }}
+          transition={{ type: "spring", stiffness: 420, damping: 40 }}
+        >
+          <div className="grid h-14 grid-cols-[1fr_1fr_1fr_auto]">
+            {nav.map(({ label, id }) => (
               <a
                 key={id}
                 href={`#${id}`}
-                className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
+                aria-current={active === id ? "location" : undefined}
+                className={`relative flex touch-manipulation items-center justify-center text-small transition-colors duration-200 ${
+                  active === id ? "text-panel-ink" : "text-panel-ink/60"
+                }`}
               >
+                {active === id && (
+                  <motion.span
+                    layoutId="deck-indicator"
+                    className="absolute inset-x-3 top-0 h-[2px] bg-panel-ink"
+                    transition={{ type: "spring", stiffness: 380, damping: 34 }}
+                  />
+                )}
                 {label}
               </a>
             ))}
-          </nav>
-          <a
-            href="#contact"
-            className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground underline decoration-accent decoration-2 underline-offset-4"
-          >
-            New York, NY
-          </a>
-        </div>
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="h-px w-full bg-border" />
-        </div>
-      </header>
+            <a
+              href={`mailto:${EMAIL}`}
+              className="flex touch-manipulation items-center bg-ground px-6 text-small font-medium text-ink active:bg-[#e6e6e6]"
+            >
+              Email
+            </a>
+          </div>
+        </motion.nav>
+      )}
+    </AnimatePresence>
+  );
+}
 
-      {/* Hero */}
-      <section
-        ref={heroRef}
-        className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 pt-28"
+function LocalClock({ className }: { className?: string }) {
+  const time = useNewYorkTime();
+  return <Clock time={time} className={className} />;
+}
+
+function LocalTime() {
+  const time = useNewYorkTime();
+  return (
+    <span className="tabular-nums">
+      {time.label} {time.zone}
+    </span>
+  );
+}
+
+function Hero() {
+  const ref = useRef<HTMLElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const textY = useTransform(scrollYProgress, [0, 1], [0, 48]);
+  const clockY = useTransform(scrollYProgress, [0, 1], [0, 120]);
+  // Scroll-linked styles bypass MotionConfig, so parallax is opted out by hand.
+  const drift = (y: typeof textY) => (reduce ? undefined : { y });
+
+  return (
+    <section id="top" ref={ref}>
+      <div
+        className={`${wrap} grid grid-cols-1 content-center gap-x-8 pb-20 pt-[calc(var(--header-h)+env(safe-area-inset-top)+2.75rem)] md:min-h-[100svh] md:grid-cols-12 md:pb-14 md:pt-[calc(var(--header-h)+2.5rem)]`}
       >
-        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="max-w-2xl">
-          <Reveal>
-            <Label>Product Owner · Technical Product Leader</Label>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <h1 className="mt-6 font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
-              From ambiguity
-              <br />
-              <span className="text-accent">to roadmaps.</span>
-            </h1>
-          </Reveal>
-          <Reveal delay={0.16}>
-            <p className="mt-8 max-w-lg text-lg leading-relaxed text-muted-foreground">
-              I&apos;m Adam Johnson — a product owner and technically grounded
-              leader with 7+ years across product delivery, QA engineering, web
-              development, and software education. I frame the problem, sequence
-              the work, and make complex decisions clear to everyone in the room.
-            </p>
-          </Reveal>
-          <Reveal delay={0.24}>
-            <div className="mt-10 flex flex-wrap items-center gap-4">
-              <a
-                href="#work"
-                className="group inline-flex items-center gap-2 bg-primary px-6 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-primary-foreground transition-colors hover:bg-accent"
-              >
-                Experience
-                <span className="transition-transform group-hover:translate-x-1">
-                  →
-                </span>
-              </a>
-              <a
-                href="#contact"
-                className="inline-flex items-center gap-2 border border-border px-6 py-3 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors hover:border-foreground"
-              >
-                Get in touch
-              </a>
-            </div>
-          </Reveal>
+        <motion.div style={drift(textY)} className="md:col-span-11 xl:col-span-10">
+          <motion.h1
+            className="text-display font-medium [text-wrap:wrap]"
+            initial={reduce ? false : { clipPath: "inset(100% -4% -25% -4%)", y: 36 }}
+            animate={{ clipPath: "inset(-15% -4% -25% -4%)", y: 0 }}
+            transition={{ duration: 1.1, ease: EASE }}
+          >
+            Product owner with an engineer’s habits.
+          </motion.h1>
         </motion.div>
-        <div className="absolute bottom-8 left-6 hidden md:block">
-          <Label>Scroll to explore ↓</Label>
-        </div>
-      </section>
 
-      {/* Work */}
-      <section id="work" className="relative z-10 bg-background/85 backdrop-blur-sm">
-        <div className="mx-auto max-w-6xl px-6 py-28">
-          <Reveal>
-            <div className="flex items-baseline justify-between border-b border-border pb-4">
-              <h2 className="font-display text-2xl font-bold tracking-tight">
-                Experience
-              </h2>
-              <Label>2019 — Present</Label>
-            </div>
-          </Reveal>
-          <div>
-            {work.map((w, i) => {
-              const Art = workArt[i % workArt.length];
-              return (
-                <Reveal key={w.idx} delay={i * 0.05}>
-                  <article className="group grid grid-cols-1 gap-6 border-b border-border py-10 md:grid-cols-[auto_1fr_auto] md:items-start md:gap-10">
-                    <div className="flex items-center gap-5 md:block">
-                      <div className="font-mono text-sm text-muted-foreground">
-                        {w.idx}
-                      </div>
-                      <Art className="h-12 w-auto text-foreground transition-transform duration-500 group-hover:scale-105 md:mt-4" />
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                        <h3 className="font-display text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
-                          {w.title}
-                        </h3>
-                        <StatusBadge kind={w.status.kind} label={w.status.label} />
-                      </div>
-                      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                        {w.role}
-                      </p>
-                      <p className="mt-4 max-w-xl leading-relaxed text-muted-foreground">
-                        {w.desc}
-                      </p>
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {w.tags.map((t) => (
-                          <span
-                            key={t}
-                            className="border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="font-mono text-sm text-muted-foreground md:text-right">
-                      {w.year}
-                    </div>
-                  </article>
-                </Reveal>
-              );
-            })}
+        <motion.div style={drift(textY)} className="mt-8 md:col-span-6 md:mt-14">
+          <p className="max-w-[46ch] text-lead text-ink-soft">
+            Hi, I’m Adam. I’m the product owner for Broadway.com’s customer-facing product here in
+            New York, ticketing included. I got here by way of QA and teaching people to code, and
+            both stuck: I write scope engineers can build from, and I look for the edge cases
+            before customers find them.
+          </p>
+          <div
+            id="hero-actions"
+            className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4 md:mt-10"
+          >
+            <Key href={`mailto:${EMAIL}`}>
+              Email me
+              <Icon as={ArrowUpRight} />
+            </Key>
+            <a
+              href="#work"
+              className="group inline-flex min-h-12 items-center gap-2 underline decoration-rule underline-offset-4 transition-colors hover:decoration-ink"
+            >
+              See my experience
+              <Icon
+                as={ArrowDown}
+                className="transition-transform duration-300 group-hover:translate-y-0.5"
+              />
+            </a>
+          </div>
+        </motion.div>
+
+        <motion.div
+          style={drift(clockY)}
+          className="mt-12 w-full md:col-span-4 md:col-start-9 md:mt-14 md:max-w-[22rem] md:justify-self-end"
+        >
+          <LocalClock />
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function Work() {
+  return (
+    <section id="work" className="scroll-mt-(--chrome-top)">
+      <div className={`${wrap} pb-12 pt-20 md:pt-36`}>
+        <div className="grid gap-x-8 gap-y-5 md:grid-cols-12 md:items-end">
+          <h2 className="text-heading font-medium md:col-span-6">Experience</h2>
+          <p className="max-w-[40ch] text-lead text-ink-2 md:col-span-5 md:col-start-8">
+            I started out testing software, spent three years teaching people how to build it, and
+            now I help decide what gets built. For a few of those years I was doing two at once.
+          </p>
+        </div>
+        <div className="mt-10 md:mt-16">
+          <Experience roles={roles} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Approach() {
+  return (
+    <section id="principles" className="scroll-mt-(--chrome-top)">
+      <div className={`${wrap} grid gap-x-8 gap-y-10 py-20 md:grid-cols-12 md:gap-y-12 md:py-36`}>
+        <div className="md:col-span-4">
+          <div className="md:sticky md:top-[calc(var(--header-h)+3rem)] short:static">
+            <h2 className="text-heading font-medium">How I work</h2>
+            <p className="mt-5 max-w-[32ch] text-lead text-ink-2 md:mt-6">
+              None of this is new or clever. These are six habits I try to keep on every
+              project, especially when things get busy.
+            </p>
           </div>
         </div>
-      </section>
+        <ul className="md:col-span-8 md:col-start-5">
+          {principles.map(([title, body]) => (
+            <li key={title}>
+              <Rule />
+              <div className="grid gap-x-8 gap-y-2.5 py-7 md:py-10 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
+                <h3 className="text-[1.375rem] font-medium leading-tight tracking-[-0.015em]">
+                  {title}
+                </h3>
+                <p className="max-w-[56ch] text-ink-soft">{body}</p>
+              </div>
+            </li>
+          ))}
+          <li aria-hidden="true">
+            <Rule />
+          </li>
+        </ul>
+      </div>
+    </section>
+  );
+}
 
-      {/* Principles */}
-      <section id="principles" className="relative z-10">
-        <div className="mx-auto max-w-6xl px-6 py-28">
-          <Reveal>
-            <Label>How I work</Label>
-            <h2 className="mt-4 max-w-2xl font-display text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-5xl">
-              Turn ambiguity into simple, dependable products.
-            </h2>
-          </Reveal>
-          <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-            {principles.map(([title, body], i) => {
-              const Icon = principleIcons[i];
-              return (
-              <Reveal key={title} delay={(i % 3) * 0.06} className="bg-card">
-                <div className="flex h-full flex-col p-8">
-                  <div className="flex items-center justify-between">
-                    <Icon className="h-7 w-7 text-foreground" />
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <h3 className="mt-6 font-display text-xl font-bold tracking-tight">
-                    {title}
-                  </h3>
-                  <p className="mt-3 leading-relaxed text-muted-foreground">
-                    {body}
-                  </p>
-                </div>
-              </Reveal>
-              );
-            })}
+function About() {
+  return (
+    <section id="about" className="on-panel scroll-mt-(--chrome-top) bg-panel text-panel-ink">
+      <div className={`${wrap} py-20 md:py-36`}>
+        <h2 className="max-w-[22ch] text-[clamp(1.875rem,1.2rem+2.4vw,3.25rem)] font-medium leading-[1.06] tracking-[-0.028em]">
+          I work where product, engineering, and the business overlap.
+        </h2>
+        <div className="mt-10 grid gap-x-8 gap-y-12 md:mt-20 lg:grid-cols-12">
+          <div className="max-w-[60ch] space-y-5 text-panel-ink/75 lg:col-span-6">
+            <p>
+              My job is to leave the room with one plan that all three can build from. Since 2022
+              I’ve guided customer-facing work at Broadway.com from the first framing of a problem
+              through launch and iteration, including our ticketing systems and how they’re put
+              together.
+            </p>
+            <p>
+              QA taught me where software tends to break. Teaching at Flatiron School taught me how
+              to explain technical ideas to anyone, whatever their background. And JavaScript and
+              Next.js are how I keep up with the engineers I work with: enough to talk through
+              dependencies and tradeoffs with them, and to know when it’s better to stay out of the
+              way.
+            </p>
           </div>
+          {/* A rating plate: rows divided by hairlines, ruled top and bottom, no box. */}
+          <dl className="border-y border-panel-ink/25 lg:col-span-5 lg:col-start-8">
+            {spec.map(([term, value], i) => (
+              <div
+                key={term}
+                className={`grid grid-cols-[7.5rem_minmax(0,1fr)] gap-4 py-4 sm:grid-cols-[9rem_minmax(0,1fr)] ${
+                  i ? "border-t border-panel-rule" : ""
+                }`}
+              >
+                <dt className="text-small text-panel-ink/60">{term}</dt>
+                <dd className="text-panel-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* About / metrics */}
-      <section id="about" className="relative z-10 bg-primary text-primary-foreground">
-        <div className="mx-auto max-w-6xl px-6 py-28">
-          <div className="grid grid-cols-1 gap-16 lg:grid-cols-[1.2fr_1fr]">
-            <Reveal>
-              <Label>About</Label>
-              <p className="mt-6 font-display text-2xl font-medium leading-snug tracking-tight sm:text-3xl">
-                I sit where product, engineering, and the business meet — and I
-                leave with one roadmap everyone can get behind.
-              </p>
-              <p className="mt-8 max-w-xl leading-relaxed text-primary-foreground/70">
-                Since 2022 I&apos;ve guided customer-facing digital work at
-                Broadway.com from problem framing through launch and iteration,
-                including projects involving ticketing systems and their
-                architecture. A QA background gave me an eye for edge cases and
-                risk; teaching at Flatiron School sharpened how I make technical
-                concepts clear and build alignment across diverse teams. With
-                JavaScript and Next.js fluency, I can evaluate dependencies and
-                keep product and platform goals moving together.
-              </p>
-            </Reveal>
-            <div className="grid grid-cols-2 gap-px self-start bg-primary-foreground/15">
-              {metrics.map(([n, l], i) => (
-                <Reveal key={l} delay={i * 0.06} className="bg-primary">
-                  <div className="p-6">
-                    <div className="font-display text-4xl font-extrabold tracking-tight text-primary-foreground">
-                      {n}
-                    </div>
-                    <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.15em] text-primary-foreground/60">
-                      {l}
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+function Contact() {
+  return (
+    <section id="contact" className="scroll-mt-(--chrome-top)">
+      <div className={`${wrap} pb-16 pt-20 md:pb-28 md:pt-36`}>
+        <h2 className="max-w-[20ch] text-heading font-medium">
+          Working on something? I’d like to hear about it.
+        </h2>
+        <p className="mt-5 max-w-[46ch] text-lead text-ink-2 md:mt-6">
+          Whether it’s a project, a product problem, or just a question, email is the best way to
+          reach me. I’m on LinkedIn too.
+        </p>
 
-      {/* Contact */}
-      <footer id="contact" className="relative z-10">
-        <div className="mx-auto max-w-6xl px-6 py-28">
-          <Reveal>
-            <Label>Contact</Label>
-            <h2 className="mt-6 font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
-              Let&apos;s build
-              <br />
-              <span className="text-accent">something dependable.</span>
-            </h2>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <div className="mt-14 grid grid-cols-1 gap-8 border-t border-border pt-10 sm:grid-cols-3">
-              {contact.map(({ icon: I, label, value, href }) => (
-                <div key={label} className="group">
-                  <div className="flex items-center gap-2">
-                    <I className="h-4 w-4 text-muted-foreground" />
-                    <Label>{label}</Label>
-                  </div>
-                  {href ? (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 block font-display text-lg font-semibold tracking-tight underline-offset-4 hover:underline"
-                    >
-                      {value}
-                    </a>
-                  ) : (
-                    <div className="mt-3 font-display text-lg font-semibold tracking-tight">
-                      {value}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Reveal>
-          <div className="mt-20 flex flex-col items-start justify-between gap-4 border-t border-border pt-6 sm:flex-row sm:items-center">
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              © 2026 Adam Johnson
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              Designed in the spirit of Dieter Rams
-            </span>
-          </div>
+        <a
+          href={`mailto:${EMAIL}`}
+          className="mt-12 inline-block text-[clamp(2.125rem,0.9rem+5.2vw,5.5rem)] font-medium leading-[1.05] tracking-[-0.035em] underline decoration-rule decoration-2 underline-offset-[0.16em] transition-[text-decoration-color] duration-200 [overflow-wrap:anywhere] hover:decoration-ink md:mt-20"
+        >
+          {EMAIL}
+        </a>
+
+        <div id="contact-actions" className="mt-8 grid gap-3 sm:flex sm:flex-wrap md:mt-10">
+          <Key href={`mailto:${EMAIL}`} className="w-full sm:w-auto">
+            Email me
+            <Icon as={ArrowUpRight} />
+          </Key>
+          <CopyKey value={EMAIL} className="w-full sm:w-auto" />
         </div>
-      </footer>
-    </div>
+
+        {/* Set like the About spec sheet: hairline rows, label and value. */}
+        <dl className="mt-16 border-y border-rule md:mt-28 md:max-w-[40rem]">
+          <div className="grid gap-x-4 gap-y-1 py-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
+            <dt className="meta pt-px">LinkedIn</dt>
+            <dd>
+              <a
+                href={LINKEDIN.href}
+                target="_blank"
+                rel="noreferrer"
+                className="-my-2.5 inline-flex min-h-11 items-center underline decoration-rule [overflow-wrap:anywhere] hover:decoration-ink"
+              >
+                {LINKEDIN.handle}
+              </a>
+            </dd>
+          </div>
+          <div className="grid gap-x-4 gap-y-1 border-t border-rule py-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
+            <dt className="meta pt-px">Based in</dt>
+            <dd>New York, NY</dd>
+          </div>
+          <div className="grid gap-x-4 gap-y-1 border-t border-rule py-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
+            <dt className="meta pt-px">Local time</dt>
+            <dd>
+              <LocalTime />
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className={`${wrap} pb-[max(2.5rem,env(safe-area-inset-bottom))]`}>
+      <p className="meta">© {new Date().getFullYear()} Adam Johnson</p>
+    </footer>
+  );
+}
+
+export default function App() {
+  return (
+    <MotionConfig reducedMotion="user">
+      <Header />
+      <main>
+        <Hero />
+        <Work />
+        <Approach />
+        <About />
+        <Contact />
+      </main>
+      <Footer />
+      <Deck />
     </MotionConfig>
   );
 }

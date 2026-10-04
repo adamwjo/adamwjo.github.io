@@ -6,3 +6,6 @@ vite.config.*.timestamp-*
 *.log
 .env*
 .DS_Store
+
+# Impeccable review screenshots (local evidence only)
+.impeccable/review/
