@@ -1,86 +1,168 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
-@import 'tailwindcss';
+@import "tailwindcss";
 
+/*
+ * Black on white, the way Braun printed it. No accent colour: hierarchy comes
+ * from size, weight, and space. Square edges everywhere except the clock.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #0e0e0e;
-  --card: #f6f6f4;
-  --card-foreground: #0e0e0e;
-  --primary: #0e0e0e;
-  --primary-foreground: #ffffff;
-  --secondary: #ececea;
-  --secondary-foreground: #0e0e0e;
-  --muted: #ececea;
-  --muted-foreground: #6a6a68;
-  --accent: #0e0e0e;
-  --accent-foreground: #ffffff;
-  --border: #dcdcd8;
-  --ring: #0e0e0e;
-  --radius: 2px;
+  --ground: #ffffff;
+  --ink: #111111;
+  --ink-soft: #383838; /* running text */
+  --ink-2: #666666; /* meta — 5.7:1 on white */
+  --rule: #dcdcdc;
+  --panel: #161616; /* black control panel */
+  --panel-ink: #f2f2f2;
+  --panel-mute: #8a8a8a; /* non-text marks on panel */
+  --panel-rule: #333333;
 
-  /* Status — the only place color is permitted */
-  --error: #c8322b;
-  --success: #1f7a43;
-  --warning: #b5761a;
-  --info: #2b5ec8;
+  --header-h: 4rem;
+  /* What is pinned at the top while reading. Phones: nothing (the header
+     scrolls away and navigation lives in the bottom deck). Larger: the header. */
+  --chrome-top: 0px;
+}
+
+@media (min-width: 48rem) and (min-height: 32.51rem) {
+  :root {
+    --chrome-top: var(--header-h);
+  }
+}
+
+/* Landscape phones: too short to pin anything at the top. */
+@custom-variant short (@media (max-height: 32.5rem));
+
+/* A phone in either orientation: narrow, or short with a touch pointer.
+   Phones get the bottom Deck instead of the header nav. */
+@custom-variant phone {
+  @media (max-width: 47.99rem) {
+    @slot;
+  }
+  @media (max-height: 32.5rem) and (pointer: coarse) {
+    @slot;
+  }
+}
+@custom-variant not-phone {
+  @media (min-width: 48rem) and (min-height: 32.51rem) {
+    @slot;
+  }
+  @media (min-width: 48rem) and (pointer: fine) {
+    @slot;
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-  --color-error: var(--error);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-info: var(--info);
-  --font-display: 'Archivo', sans-serif;
-  --font-sans: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --color-ground: var(--ground);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-2: var(--ink-2);
+  --color-rule: var(--rule);
+  --color-panel: var(--panel);
+  --color-panel-ink: var(--panel-ink);
+  --color-panel-mute: var(--panel-mute);
+  --color-panel-rule: var(--panel-rule);
 }
 
-html {
-  scroll-behavior: smooth;
+@theme {
+  --font-sans: "Switzer", ui-sans-serif, system-ui, sans-serif;
+
+  --text-display: clamp(2.625rem, 1.5rem + 4.8vw, 5.5rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.028em;
+  --text-heading: clamp(2.125rem, 1.5rem + 2.6vw, 3.5rem);
+  --text-heading--line-height: 1.04;
+  --text-heading--letter-spacing: -0.022em;
+  --text-title: clamp(1.5rem, 1.25rem + 1vw, 2rem);
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.015em;
+  --text-lead: clamp(1.1875rem, 1.08rem + 0.4vw, 1.375rem);
+  --text-lead--line-height: 1.5;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.62;
+  /* The smallest text on the page. Meta, years, captions, tags. */
+  --text-small: 0.9375rem;
+  --text-small--line-height: 1.45;
+  /* Instrument legends only: the dial's years and band names on phones. */
+  --text-legend: 0.8125rem;
+  --text-legend--line-height: 1.25rem;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+/* The page container. Gutters never sit inside a notch or rounded corner
+   (index.html sets viewport-fit=cover). */
+@utility wrap {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1240px;
+  --gutter: 1.25rem;
+  padding-left: max(var(--gutter), env(safe-area-inset-left));
+  padding-right: max(var(--gutter), env(safe-area-inset-right));
+  @media (min-width: 40rem) {
+    --gutter: 2rem;
+  }
+  @media (min-width: 64rem) {
+    --gutter: 3rem;
+  }
 }
 
-::selection {
-  background: var(--foreground);
-  color: var(--background);
+/* Meta text: small, grey, sentence case. Never uppercase, never tracked. */
+@utility meta {
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+  color: var(--ink-2);
 }
 
-/* Hide scrollbar until scrolling */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-*:hover {
-  scrollbar-color: var(--border) transparent;
-}
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 8px;
-}
-:hover::-webkit-scrollbar-thumb {
-  background: var(--border);
+@layer base {
+  html {
+    background: var(--ground);
+    color: var(--ink);
+    scroll-behavior: smooth;
+    scrollbar-color: #c4c4c4 var(--ground);
+    scrollbar-width: thin;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a {
+    text-underline-offset: 0.22em;
+    text-decoration-thickness: 1px;
+  }
+
+  ::selection {
+    background: var(--ink);
+    color: var(--ground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  .on-panel :focus-visible {
+    outline-color: var(--panel-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
 }
